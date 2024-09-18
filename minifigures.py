@@ -114,7 +114,7 @@ def create_pdf_document(total_value: float, input_list: list[MinifigureWebData])
     pdf.add_page()
 
     pdf.set_font("Arial", "B", 16)
-    pdf.cell(200, 10, txt=f"My LEGO StarWars minifigures total value: {total_value}", ln=True, align="C")
+    pdf.cell(200, 10, txt=f"My LEGO StarWars minifigures total value: UAH {total_value}", ln=True, align="C")
 
     pdf.ln(10)
     pdf.set_font("Arial", "B", 12)
