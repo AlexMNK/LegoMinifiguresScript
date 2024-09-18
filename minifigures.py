@@ -9,7 +9,10 @@ import requests
 from fpdf import FPDF
 from PIL import Image
 from typing import Tuple
+from tqdm import tqdm
+import math
 import re
+import os
 
 
 # local globals
@@ -23,7 +26,7 @@ EXCEL_LINK_COLUMN_NAME = "Link"
 EXCEL_QUANTITY_COLUMN_NAME = "Quantity"
 
 # page-related globals
-PAGE_WAIT_DELAY = 0.1
+PAGE_WAIT_DELAY = 0.3
 USED_FIGURE_TABLE_ID = 1
 AVG_PRICE_PATTERN = r"Avg Price: UAH ([\d,]+\.\d+)"
 MINIFIGURE_NAME_ELEMENT = "item-name-title"
@@ -48,27 +51,34 @@ def read_excel(file_path: str) -> list[MinifigureInputData]:
     return minifigure_list
 
 
+def normalize_minifigure_name(name: str) -> str:
+    return re.sub(r"[\'/]", "", name)
+
+
 def fetch_minifigures_data(input_list: list[MinifigureInputData]) -> list[MinifigureWebData]:
-    print("Fetching web data...")
     chrome_options = Options()
     chrome_options.add_argument("--headless")
 
     service = Service(CHROME_DRIVER_PATH)
     driver = webdriver.Chrome(service=service, options=chrome_options)
 
+    if not os.path.exists(IMG_PATH):
+        os.makedirs(IMG_PATH)
+
     result_list = []
 
-    for input_element in input_list:
+    for input_element in tqdm(input_list, desc="Fetching web data"):
         driver.get(input_element.link)
         driver.implicitly_wait(PAGE_WAIT_DELAY)
 
-        minifigure_name = driver.find_element(By.ID, MINIFIGURE_NAME_ELEMENT).text
+        fetched_name = driver.find_element(By.ID, MINIFIGURE_NAME_ELEMENT).text
+        minifigure_name = normalize_minifigure_name(fetched_name)
         if len(minifigure_name) > MINIFIGURE_NAME_MAX_LENGTH:
             minifigure_name = minifigure_name[:MINIFIGURE_NAME_MAX_LENGTH] + "..."
 
         price_tables = driver.find_elements(By.CLASS_NAME, MINIFIGURE_PRICE_ELEMENT)
         table_text = price_tables[USED_FIGURE_TABLE_ID].text
-        minifigure_price = re.search(AVG_PRICE_PATTERN, table_text).group(1)
+        minifigure_price = float(re.search(AVG_PRICE_PATTERN, table_text).group(1).replace(",", ""))
 
         image_element = driver.find_element(By.ID, MINIFIGURE_IMG_ELEMENT)
         image_url = image_element.get_attribute("src")
@@ -92,8 +102,8 @@ def fetch_minifigures_data(input_list: list[MinifigureInputData]) -> list[Minifi
 
 def sort_minifigure_list(input_list: list[MinifigureWebData]) -> Tuple[float, list[MinifigureWebData]]:
     print("Sorting minifigure list by price...")
-    minifigures_sorted = sorted(input_list, key=lambda x: x.price)
-    total_value = sum(figure.price * (figure.quantity if figure.quantity is not None else 1) for figure in minifigures_sorted)
+    minifigures_sorted = sorted(input_list, key=lambda x: x.price, reverse=True)
+    total_value = sum(figure.price * (1 if figure.quantity is None or math.isnan(figure.quantity) else int(figure.quantity)) for figure in minifigures_sorted)
 
     return total_value, minifigures_sorted
 
@@ -112,12 +122,15 @@ def create_pdf_document(total_value: float, input_list: list[MinifigureWebData])
     element_index = 1
 
     for minifigure_data in input_list:
+        if pdf.get_y() > 260:
+            pdf.add_page()
+
         current_x = pdf.get_x()
         current_y = pdf.get_y()
 
         pdf.cell(120, 10, f"{element_index}. {minifigure_data.name}", ln=0)
 
-        price_value = f"UAH {minifigure_data.price}" if not minifigure_data.quantity else f"UAH {minifigure_data.price} x{int(minifigure_data.quantity)}"
+        price_value = f"UAH {minifigure_data.price}" if not minifigure_data.quantity or math.isnan(minifigure_data.quantity) else f"UAH {minifigure_data.price} x{int(minifigure_data.quantity)}"
         pdf.cell(20, 10, price_value, ln=0)
 
         pdf.image(minifigure_data.image, x=current_x + 166, y=current_y, w=20, h=20)
