@@ -21,12 +21,18 @@ REQUESTS_HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) App
 IMG_PATH = "img"
 PDF_NAME = "my_minifigures.pdf"
 EXCEL_PATH = "my_minifigures.xlsx"
+# PDF_NAME = "minifigures_to_buy.pdf"
+# EXCEL_PATH = "minifigures_to_buy.xlsx"
 EXCEL_SHEET_NAME = "Minifigures"
 EXCEL_LINK_COLUMN_NAME = "Link"
 EXCEL_QUANTITY_COLUMN_NAME = "Quantity"
+EXCEL_QUALITY_COLUMN_NAME = "Quality"
+EXCEL_QUALITY_USED = "u"
+EXCEL_QUALITY_NEW = "n"
 
 # page-related globals
-PAGE_WAIT_DELAY = 0.3
+PAGE_WAIT_DELAY = 1.5
+NEW_FIGURE_TABLE_ID = 0
 USED_FIGURE_TABLE_ID = 1
 AVG_PRICE_PATTERN = r"Avg Price: UAH ([\d,]+\.\d+)"
 MINIFIGURE_NAME_ELEMENT = "item-name-title"
@@ -35,7 +41,7 @@ MINIFIGURE_IMG_ELEMENT = "_idImageMain"
 MINIFIGURE_NAME_MAX_LENGTH = 46
 
 # data types
-MinifigureInputData = namedtuple("MinifigureInputData", ["link", "quantity"])
+MinifigureInputData = namedtuple("MinifigureInputData", ["link", "quantity", "quality"])
 MinifigureWebData = namedtuple("MinifigureWebData", ["name", "price", "quantity", "image"])
 
 
@@ -46,7 +52,9 @@ def read_excel(file_path: str) -> list[MinifigureInputData]:
     for _, row in excel_data.iterrows():
         link = row[EXCEL_LINK_COLUMN_NAME]
         quantity = row.get(EXCEL_QUANTITY_COLUMN_NAME, None)
-        minifigure_list.append(MinifigureInputData(link=link, quantity=quantity))
+        quality = row[EXCEL_QUALITY_COLUMN_NAME]
+        assert quality in [EXCEL_QUALITY_USED, EXCEL_QUALITY_NEW]
+        minifigure_list.append(MinifigureInputData(link=link, quantity=quantity, quality=quality))
 
     return minifigure_list
 
@@ -77,7 +85,13 @@ def fetch_minifigures_data(input_list: list[MinifigureInputData]) -> list[Minifi
             minifigure_name = minifigure_name[:MINIFIGURE_NAME_MAX_LENGTH] + "..."
 
         price_tables = driver.find_elements(By.CLASS_NAME, MINIFIGURE_PRICE_ELEMENT)
-        table_text = price_tables[USED_FIGURE_TABLE_ID].text
+
+        if input_element.quality == EXCEL_QUALITY_USED:
+            table_text = price_tables[USED_FIGURE_TABLE_ID].text
+        else:
+            assert input_element.quality == EXCEL_QUALITY_NEW
+            table_text = price_tables[NEW_FIGURE_TABLE_ID].text
+
         minifigure_price = float(re.search(AVG_PRICE_PATTERN, table_text).group(1).replace(",", ""))
 
         image_element = driver.find_element(By.ID, MINIFIGURE_IMG_ELEMENT)
@@ -115,6 +129,7 @@ def create_pdf_document(total_value: float, input_list: list[MinifigureWebData])
 
     pdf.set_font("Arial", "B", 16)
     pdf.cell(200, 10, txt=f"My LEGO StarWars minifigures total value: UAH {total_value}", ln=True, align="C")
+    # pdf.cell(200, 10, txt=f"LEGO StarWars minifigures to buy total value: UAH {total_value}", ln=True, align="C")
 
     pdf.ln(10)
     pdf.set_font("Arial", "B", 12)
