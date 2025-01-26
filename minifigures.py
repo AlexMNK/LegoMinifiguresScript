@@ -19,10 +19,10 @@ import os
 CHROME_DRIVER_PATH = "C:/Users/Alex/Desktop/chromedriver/chromedriver-win64/chromedriver.exe"
 REQUESTS_HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"}
 IMG_PATH = "img"
-PDF_NAME = "my_minifigures.pdf"
-EXCEL_PATH = "my_minifigures.xlsx"
-# PDF_NAME = "minifigures_to_buy.pdf"
-# EXCEL_PATH = "minifigures_to_buy.xlsx"
+# PDF_NAME = "pdf/star_wars_minifigures.pdf"
+# EXCEL_PATH = "excel/star_wars_minifigures.xlsx"
+PDF_NAME = "pdf/other_minifigures.pdf"
+EXCEL_PATH = "excel/other_minifigures.xlsx"
 EXCEL_SHEET_NAME = "Minifigures"
 EXCEL_LINK_COLUMN_NAME = "Link"
 EXCEL_QUANTITY_COLUMN_NAME = "Quantity"
@@ -128,8 +128,8 @@ def create_pdf_document(total_value: float, input_list: list[MinifigureWebData])
     pdf.add_page()
 
     pdf.set_font("Arial", "B", 16)
-    pdf.cell(200, 10, txt=f"My LEGO StarWars minifigures total value: UAH {total_value}", ln=True, align="C")
-    # pdf.cell(200, 10, txt=f"LEGO StarWars minifigures to buy total value: UAH {total_value}", ln=True, align="C")
+    # pdf.cell(200, 10, txt=f"My LEGO StarWars minifigures total value: UAH {total_value}", ln=True, align="C")
+    pdf.cell(200, 10, txt=f"My LEGO other minifigures total value: UAH {total_value}", ln=True, align="C")
 
     pdf.ln(10)
     pdf.set_font("Arial", "B", 12)
