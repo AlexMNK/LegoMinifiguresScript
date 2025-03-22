@@ -19,10 +19,10 @@ import os
 CHROME_DRIVER_PATH = "C:/Users/Alex/Desktop/chromedriver/chromedriver-win64/chromedriver.exe"
 REQUESTS_HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"}
 IMG_PATH = "img"
-# PDF_NAME = "pdf/star_wars_minifigures.pdf"
-# EXCEL_PATH = "excel/star_wars_minifigures.xlsx"
-PDF_NAME = "pdf/other_minifigures.pdf"
-EXCEL_PATH = "excel/other_minifigures.xlsx"
+PDF_NAME = "pdf/star_wars_minifigures.pdf"
+EXCEL_PATH = "excel/star_wars_minifigures.xlsx"
+# PDF_NAME = "pdf/other_minifigures.pdf"
+# EXCEL_PATH = "excel/other_minifigures.xlsx"
 EXCEL_SHEET_NAME = "Minifigures"
 EXCEL_LINK_COLUMN_NAME = "Link"
 EXCEL_QUANTITY_COLUMN_NAME = "Quantity"
@@ -80,7 +80,8 @@ def fetch_minifigures_data(input_list: list[MinifigureInputData]) -> list[Minifi
         driver.implicitly_wait(PAGE_WAIT_DELAY)
 
         fetched_name = driver.find_element(By.ID, MINIFIGURE_NAME_ELEMENT).text
-        minifigure_name = normalize_minifigure_name(fetched_name)
+        minifigure_name_normalized_full_size = normalize_minifigure_name(fetched_name)
+        minifigure_name = minifigure_name_normalized_full_size
         if len(minifigure_name) > MINIFIGURE_NAME_MAX_LENGTH:
             minifigure_name = minifigure_name[:MINIFIGURE_NAME_MAX_LENGTH] + "..."
 
@@ -102,7 +103,7 @@ def fetch_minifigures_data(input_list: list[MinifigureInputData]) -> list[Minifi
             image_bytes = BytesIO(response.content)
             image = Image.open(image_bytes)
             rgb_im = image.convert("RGB")
-            minifigure_img = f"{IMG_PATH}/{minifigure_name}.jpg"
+            minifigure_img = f"{IMG_PATH}/{minifigure_name_normalized_full_size}.jpg"
             rgb_im.save(minifigure_img)
         else:
             raise ValueError(f"Failed to get image of {input_element.link}")
@@ -128,8 +129,8 @@ def create_pdf_document(total_value: float, input_list: list[MinifigureWebData])
     pdf.add_page()
 
     pdf.set_font("Arial", "B", 16)
-    # pdf.cell(200, 10, txt=f"My LEGO StarWars minifigures total value: UAH {total_value}", ln=True, align="C")
-    pdf.cell(200, 10, txt=f"My LEGO other minifigures total value: UAH {total_value:.2f}", ln=True, align="C")
+    pdf.cell(200, 10, txt=f"My LEGO StarWars minifigures total value: UAH {total_value:.2f}", ln=True, align="C")
+    # pdf.cell(200, 10, txt=f"My LEGO other minifigures total value: UAH {total_value:.2f}", ln=True, align="C")
 
     pdf.ln(10)
     pdf.set_font("Arial", "B", 12)
