@@ -34,7 +34,7 @@ EXCEL_QUALITY_NEW = "n"
 PAGE_WAIT_DELAY = 1.5
 NEW_FIGURE_TABLE_ID = 0
 USED_FIGURE_TABLE_ID = 1
-AVG_PRICE_PATTERN = r"Avg Price: UAH ([\d,]+\.\d+)"
+AVG_PRICE_PATTERN = r"UAH\s+([\d,]+\.\d{2})"
 MINIFIGURE_NAME_ELEMENT = "item-name-title"
 MINIFIGURE_PRICE_ELEMENT = "pcipgSummaryTable"
 MINIFIGURE_IMG_ELEMENT = "_idImageMain"
@@ -87,13 +87,12 @@ def fetch_minifigures_data(input_list: list[MinifigureInputData]) -> list[Minifi
 
         price_tables = driver.find_elements(By.CLASS_NAME, MINIFIGURE_PRICE_ELEMENT)
 
-        if input_element.quality == EXCEL_QUALITY_USED:
-            table_text = price_tables[USED_FIGURE_TABLE_ID].text
-        else:
-            assert input_element.quality == EXCEL_QUALITY_NEW
-            table_text = price_tables[NEW_FIGURE_TABLE_ID].text
+        table_index = USED_FIGURE_TABLE_ID if input_element.quality == EXCEL_QUALITY_USED else NEW_FIGURE_TABLE_ID
+        table_object = price_tables[table_index]
+        table_price_td = table_object.find_element(By.XPATH, ".//tr[4]/td[2]")
+        price_text = driver.execute_script("return arguments[0].innerText;", table_price_td).strip()
 
-        minifigure_price = float(re.search(AVG_PRICE_PATTERN, table_text).group(1).replace(",", ""))
+        minifigure_price = float(re.search(AVG_PRICE_PATTERN, price_text).group(1).replace(",", ""))
 
         image_element = driver.find_element(By.ID, MINIFIGURE_IMG_ELEMENT)
         image_url = image_element.get_attribute("src")
